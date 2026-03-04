@@ -1,0 +1,45 @@
+NAME
+	git-protection - Spawn a new program with .git mounted as read-only
+
+SYNOPSIS
+	git-protection utility [argument] ...
+
+DESCRIPTION
+	The git-protection utility runs a specified utility, but makes
+	the .git directory a read-only mountpoint the specified utility.
+
+OPTIONS
+	No options are supported.
+
+OPERANDS
+	The following operands are supported:
+
+	utility
+		The name of the utility to be invoked.
+
+	argument
+		A string to pass as an argument for the invoked utility.
+
+EXIT STATUS
+	If utility is invoked, the exit status of git-protection is the exit
+	status of utility; otherwise, the git-protection utility exits with
+	one of the following values:
+
+	125     An error occurred in the git-protection utility.
+
+	126     The utility specified by utility was found but could
+	        not be invoked.
+
+	127     The utility specified by utility could not be found.
+
+RATIONALE
+	The git-protection utility can be used as a wrapper around agentic
+	aritifical intelligence tools to stop them from making destructive
+	changes to your git repository, only allowing them to write to the
+	workspace without involving git but read git data. Blocking the
+	tool from unstaging changes or otherwise remove information that
+	has been stored in git, actions that these tools otherwise like
+	to perform.
+
+SEE ALSO
+	None.

@@ -1,0 +1,65 @@
+.TH GIT-PROTECTION 1 GIT-PROTECTION
+.SH NAME
+git-protection \- Spawn a new program with .git mounted as read-only
+
+.SH SYNOPSIS
+.B git-protection
+.I utility
+.RI [ argument ]\ ...
+
+.SH DESCRIPTION
+The
+.B git-protection
+utility runs a specified utility, but makes the
+.I .git
+directory a read-only mountpoint the specified utility.
+
+.SH OPTIONS
+No options are supported.
+
+.SH OPERANDS
+The following operands are supported:
+.TP
+.I utility
+The name of the utility to be invoked.
+.TP
+.I argument
+A string to pass as an argument for the invoked utility.
+
+.SH EXIT STATUS
+If
+.I utility
+is invoked, the exit status of
+.B git-protection
+is the exit status of utility; otherwise, the
+.I git-protection
+utility exits with one of the following values:
+.TP
+125
+An error occurred in the
+.I git-protection
+utility.
+.TP
+126
+The utility specified by
+.I utility
+was found but could not be invoked.
+.TP
+127
+The utility specified by
+.I utility
+could not be found.
+
+.SH RATIONALE
+The
+.I git-protection
+utility can be used as a wrapper around agentic
+aritifical intelligence tools to stop them from making destructive
+changes to your git repository, only allowing them to write to the
+workspace without involving git but read git data. Blocking the
+tool from unstaging changes or otherwise remove information that
+has been stored in git, actions that these tools otherwise like
+to perform.
+
+.SH SEE ALSO
+None.

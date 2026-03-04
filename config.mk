@@ -1,0 +1,12 @@
+PREFIX    = /usr
+MANPREFIX = $(PREFIX)/share/man
+
+GIT_PATH = /usr/bin/git
+
+CC = c99
+
+CPPFLAGS = -D_DEFAULT_SOURCE -D_BSD_SOURCE -D_XOPEN_SOURCE=700 -D_GNU_SOURCE -D'GIT_PATH="$(GIT_PATH)"'
+CFLAGS   =
+LDFLAGS  = -lsimple
+
+BUILD_SUDO = @:
