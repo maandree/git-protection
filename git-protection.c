@@ -7,8 +7,8 @@
 NUSAGE(125, "utility [argument] ...");
 
 
-int
-main(int argc, char *argv[])
+static char *
+getdir(const char *option, const char *suffix)
 {
 	int fds[2], status;
 	pid_t pid;
@@ -16,21 +16,6 @@ main(int argc, char *argv[])
 	size_t dirsize = 0;
 	size_t dirlen = 0;
 	ssize_t r;
-
-	libsimple_default_failure_exit = 125;
-
-	ARGBEGIN {
-	default:
-		usage();
-	} ARGEND;
-
-	if (!argc)
-		usage();
-
-	if (unshare(CLONE_NEWNS))
-		eprintf("unshare CLONE_NEWNS:");
-	if (mount("none", "/", NULL, MS_REC | MS_SLAVE, NULL))
-		eprintf("mount none / NULL MS_REC|MS_SLAVE NULL:");
 
 	if (pipe(fds))
 		eprintf("pipe:");
@@ -49,7 +34,7 @@ main(int argc, char *argv[])
 				eprintf("dup2 <pipe> STDOUT_FILENO:");
 			close(fds[1]);
 		}
-		execlp(GIT_PATH, "git", "rev-parse", "--show-toplevel", NULL);
+		execlp(GIT_PATH, "git", "rev-parse", option, NULL);
 		eprintf("execlp %s:", GIT_PATH);
 	}
 	close(fds[1]);
@@ -66,7 +51,7 @@ main(int argc, char *argv[])
 		}
 		dirlen += (size_t)r;
 		if (!dirlen || dir[--dirlen] != '\n')
-			eprintf("received invalid output from `git rev-parse --show-toplevel`");
+			eprintf("received invalid output from `git rev-parse %s`", option);
 	}
 	close(fds[0]);
 	if (waitpid(pid, &status, 0) != pid)
@@ -76,16 +61,68 @@ main(int argc, char *argv[])
 			eprintf("subprocess git was killed by signal %i\n", WTERMSIG(status));
 		exit(libsimple_default_failure_exit);
 	}
-	if (dirsize - dirlen < sizeof("/.git"))
-		dir = erealloc(dir, dirlen + sizeof("/.git"));
-	stpcpy(&dir[dirlen], "/.git");
+	if (dirsize - dirlen < strlen(suffix) + 1u)
+		dir = erealloc(dir, dirlen + strlen(suffix) + 1u);
+	stpcpy(&dir[dirlen], suffix);
+
+	return dir;
+}
+
+
+static void
+protect(const char *option, const char *suffix, char **dirs, size_t *ndirsp)
+{
+	char *dir = getdir(option, suffix);
+	size_t i;
+
+	if (!*dir) {
+	dont_protect:
+		free(dir);
+		return;
+	}
+
+	for (i = 0u; i < *ndirsp; i++)
+		if (!strcmp(dir, dirs[i]))
+			goto dont_protect;
 
 	if (mount(dir, dir, NULL, MS_BIND, NULL))
 		eprintf("mount %s %s NULL MS_BIND NULL:", dir, dir);
 	if (mount("none", dir, NULL, MS_BIND | MS_REMOUNT | MS_RDONLY, NULL))
 		eprintf("mount none %s NULL MS_BIND|MS_REMOUNT|MS_RDONLY NULL:", dir);
 
-	free(dir);
+	dirs[(*ndirsp)++] = dir;
+}
+
+
+int
+main(int argc, char *argv[])
+{
+	char *dirs[4];
+	size_t ndirs = 0u;
+	size_t i;
+
+	libsimple_default_failure_exit = 125;
+
+	ARGBEGIN {
+	default:
+		usage();
+	} ARGEND;
+
+	if (!argc)
+		usage();
+
+	if (unshare(CLONE_NEWNS))
+		eprintf("unshare CLONE_NEWNS:");
+	if (mount("none", "/", NULL, MS_REC | MS_SLAVE, NULL))
+		eprintf("mount none / NULL MS_REC|MS_SLAVE NULL:");
+
+	protect("--show-toplevel", "/.git", dirs, &ndirs);
+	protect("--git-common-dir", "", dirs, &ndirs);
+	protect("--show-superproject-working-tree", "", dirs, &ndirs);
+	protect("--shared-index-path", "", dirs, &ndirs);
+
+	for (i = 0u; i < ndirs; i++)
+		free(dirs[i]);
 
 	if (setegid(getgid()))
 		eprintf("setegid <real group>:");
